@@ -1,26 +1,82 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  --background: #f8fafc;
+  --foreground: #0f172a;
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* Premium Design Tokens */
+  --primary-vibrant: #6366f1;
+  --primary-hover: #4f46e5;
+  --glass-bg: rgba(255, 255, 255, 0.8);
+  --glass-border: rgba(99, 102, 241, 0.2);
 
-/* @media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-} */
+  /* SurveyJS Overrides */
+  --sjs-primary-backcolor: var(--primary-vibrant);
+  --sjs-primary-backcolor-hover: var(--primary-hover);
+  --sjs-primary-backcolor-light: rgba(99, 102, 241, 0.1);
+  --sjs-primary-forecolor: #ffffff;
+
+  --sjs-base-unit: 8px;
+  --sjs-corner-radius: 12px;
+
+  --sjs-font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  --sjs-font-head-size: 24px;
+
+  --sjs-shadow-small: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --sjs-shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --sjs-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+  --sjs-general-backcolor: #ffffff;
+  --sjs-general-backcolor-dim: #f1f5f9;
+}
 
 body {
-  background: var(--background);
+  background: radial-gradient(circle at top right, #e0e7ff, transparent),
+    radial-gradient(circle at bottom left, #f5f3ff, transparent),
+    var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--sjs-font-family);
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Glassmorphism for the survey container */
+.sd-root-modern {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--sjs-shadow-medium) !important;
+  border-radius: var(--sjs-corner-radius) !important;
+  transition: all 0.3s ease;
+}
+
+.sd-root-modern:hover {
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Vibrant Dropdown Item Hover */
+.sv-list__item--active,
+.sv-list__item:hover {
+  background-color: var(--sjs-primary-backcolor-light) !important;
+  color: var(--primary-hover) !important;
+  font-weight: 600;
+}
+
+/* Enhanced Emoji Visibility in Inputs */
+.sd-input,
+.sd-text {
+  font-size: 1.1rem !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* Special sizing for the flag emoji field */
+[data-name="flagEmoji"] .sd-input {
+  font-size: 1.8rem !important;
+  line-height: 1 !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
 }
