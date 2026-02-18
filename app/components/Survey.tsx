@@ -6,7 +6,8 @@ import 'survey-core/survey-core.min.css';
 import { Model } from 'survey-core';
 import { Survey } from 'survey-react-ui';
 import { DefaultLight } from 'survey-core/themes';
-import { countries, getFlagEmoji } from '../constants/countries';
+import { countries } from '../constants/countries';
+import { State, City } from 'country-state-city';
 
 const surveyJson = {
     showQuestionNumbers: "off",
@@ -36,26 +37,24 @@ const surveyJson = {
                     startWithNewLine: false
                 },
                 {
-                    type: "text",
-                    name: "flagEmoji",
-                    title: "Flag Emoji",
-                    readOnly: true,
-                    width: "33%",
-                    startWithNewLine: false
-                },
-                {
-                    type: "text",
-                    name: "city",
-                    title: "City",
-                    width: "50%",
-                    startWithNewLine: true
-                },
-                {
-                    type: "text",
+                    type: "dropdown",
                     name: "state",
                     title: "State/Province",
                     width: "50%",
-                    startWithNewLine: false
+                    startWithNewLine: true,
+                    searchEnabled: true,
+                    allowClear: true,
+                    placeholder: "Select a country first..."
+                },
+                {
+                    type: "dropdown",
+                    name: "city",
+                    title: "City",
+                    width: "50%",
+                    startWithNewLine: false,
+                    searchEnabled: true,
+                    allowClear: true,
+                    placeholder: "Select a state first..."
                 }
             ]
         }
@@ -75,20 +74,61 @@ export default function SurveyComponent() {
         const survey = new Model(surveyJson);
         survey.applyTheme(DefaultLight);
 
-        // When Country changes: prefill dial code in phone number + update flag emoji
+        // When Country changes: prefill dial code in phone number + update flag emoji + load states
         survey.onValueChanged.add((sender: any, options: any) => {
-            if (options.name === "country" && options.value) {
-                const country = countries.find(c => c.code === options.value);
-                if (country) {
-                    sender.setValue("countryCode", country.code);
-                    sender.setValue("flagEmoji", country.emoji);
-                    // Prefill phone number with dial code
-                    sender.setValue("phoneNumber", country.dial + " ");
+            if (options.name === "country") {
+                const countryCode = options.value;
+                const stateQuestion = sender.getQuestionByName("state");
+                const cityQuestion = sender.getQuestionByName("city");
+
+                if (countryCode) {
+                    const country = countries.find(c => c.code === countryCode);
+                    if (country) {
+                        sender.setValue("countryCode", country.code);
+                        sender.setValue("flagEmoji", country.emoji);
+                        // Prefill phone number with dial code
+                        sender.setValue("phoneNumber", country.dial + " ");
+                    }
+
+                    // Update states
+                    const states = State.getStatesOfCountry(countryCode).map(s => ({
+                        value: s.isoCode,
+                        text: s.name
+                    }));
+                    stateQuestion.choices = states;
+                    stateQuestion.placeholder = "Select a state...";
+                } else {
+                    sender.setValue("countryCode", undefined);
+                    sender.setValue("flagEmoji", undefined);
+                    sender.setValue("phoneNumber", undefined);
+                    stateQuestion.choices = [];
+                    stateQuestion.placeholder = "Select a country first...";
                 }
-            } else if (options.name === "country" && !options.value) {
-                sender.setValue("countryCode", undefined);
-                sender.setValue("flagEmoji", undefined);
-                sender.setValue("phoneNumber", undefined);
+
+                // Reset child selections
+                sender.setValue("state", undefined);
+                sender.setValue("city", undefined);
+                cityQuestion.choices = [];
+                cityQuestion.placeholder = "Select a state first...";
+
+            } else if (options.name === "state") {
+                const stateCode = options.value;
+                const countryCode = sender.getValue("country");
+                const cityQuestion = sender.getQuestionByName("city");
+
+                if (stateCode && countryCode) {
+                    const cities = City.getCitiesOfState(countryCode, stateCode).map(c => ({
+                        value: c.name,
+                        text: c.name
+                    }));
+                    cityQuestion.choices = cities;
+                    cityQuestion.placeholder = "Select a city...";
+                } else {
+                    cityQuestion.choices = [];
+                    cityQuestion.placeholder = "Select a state first...";
+                }
+                // Reset city selection
+                sender.setValue("city", undefined);
             }
         });
 
@@ -124,3 +164,4 @@ export default function SurveyComponent() {
 
     return <Survey model={surveyRef.current!} />;
 }
+
