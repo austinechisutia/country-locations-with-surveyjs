@@ -1,7 +1,7 @@
 // components/Survey.tsx
 'use client'
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import 'survey-core/survey-core.min.css';
 import { Model } from 'survey-core';
 import { Survey } from 'survey-react-ui';
@@ -63,18 +63,18 @@ const surveyJson = {
 
 export default function SurveyComponent() {
     const [isClient, setIsClient] = useState(false);
-    const surveyRef = useRef<Model | null>(null);
 
-    // Only render on client to avoid hydration mismatch and "swiping away" errors
-    useEffect(() => {
-        setIsClient(true);
+    // Initialize survey model once
+    const survey = useMemo(() => {
+        const model = new Model(surveyJson);
+        model.applyTheme(DefaultLight);
+        return model;
     }, []);
 
-    if (!surveyRef.current && typeof window !== 'undefined') {
-        const survey = new Model(surveyJson);
-        survey.applyTheme(DefaultLight);
+    useEffect(() => {
+        setIsClient(true);
 
-        // When Country changes: prefill dial code in phone number + update flag emoji + load states
+        // Configure survey event handlers
         survey.onValueChanged.add((sender: any, options: any) => {
             if (options.name === "country") {
                 const countryCode = options.value;
@@ -86,11 +86,9 @@ export default function SurveyComponent() {
                     if (country) {
                         sender.setValue("countryCode", country.code);
                         sender.setValue("flagEmoji", country.emoji);
-                        // Prefill phone number with dial code
                         sender.setValue("phoneNumber", country.dial + " ");
                     }
 
-                    // Update states
                     const states = State.getStatesOfCountry(countryCode).map(s => ({
                         value: s.isoCode,
                         text: s.name
@@ -105,7 +103,6 @@ export default function SurveyComponent() {
                     stateQuestion.placeholder = "Select a country first...";
                 }
 
-                // Reset child selections
                 sender.setValue("state", undefined);
                 sender.setValue("city", undefined);
                 cityQuestion.choices = [];
@@ -127,34 +124,44 @@ export default function SurveyComponent() {
                     cityQuestion.choices = [];
                     cityQuestion.placeholder = "Select a state first...";
                 }
-                // Reset city selection
                 sender.setValue("city", undefined);
             }
         });
 
-        surveyRef.current = survey;
-
-        // Auto-detect country from IP address on mount
+        // Detect country from IP
         const detectCountry = async () => {
             try {
+                console.log('[Survey] Fetching country from /api/detect-country...');
                 const response = await fetch('/api/detect-country');
-                if (!response.ok) return;
-                const data = await response.json();
-                const countryCode = data.country_code;
+                if (!response.ok) {
+                    console.error('[Survey] API error:', response.status);
+                    return;
+                }
 
-                if (countryCode && surveyRef.current) {
-                    const country = countries.find(c => c.code === countryCode);
+                const data = await response.json();
+                console.log('[Survey] API response:', data);
+
+                if (data.status === 'success' && data.country_code) {
+                    const country = countries.find(c => c.code === data.country_code);
                     if (country) {
-                        surveyRef.current.setValue("country", country.code);
+                        console.log('[Survey] Setting detected country:', country.name);
+                        survey.setValue("country", country.code);
                     }
+                } else if (data.status === 'error') {
+                    console.warn('[Survey] Detection error:', data.error);
                 }
             } catch (error) {
-                console.warn('Could not detect country from IP:', error);
+                console.error('[Survey] Detection fetch failed:', error);
             }
         };
 
         detectCountry();
-    }
+
+        // Cleanup function to avoid duplicate listeners on re-mount if needed
+        return () => {
+            survey.onValueChanged.clear();
+        };
+    }, [survey]);
 
     if (!isClient) {
         return <div style={{ minHeight: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#64748b' }}>
@@ -162,6 +169,7 @@ export default function SurveyComponent() {
         </div>;
     }
 
-    return <Survey model={surveyRef.current!} />;
+    return <Survey model={survey} />;
 }
+
 
