@@ -137,7 +137,7 @@ export default function SurveyComponent() {
         // Auto-detect country from IP address on mount
         const detectCountry = async () => {
             try {
-                const response = await fetch('https://ipapi.co/json/');
+                const response = await fetch('/api/detect-country');
                 if (!response.ok) return;
                 const data = await response.json();
                 const countryCode = data.country_code;
