@@ -141,10 +141,10 @@ export default function SurveyComponent() {
                 const data = await response.json();
                 console.log('[Survey] API response:', data);
 
-                if (data.status === 'success' && data.country_code) {
+                if ((data.status === 'success' || data.status === 'fallback') && data.country_code) {
                     const country = countries.find(c => c.code === data.country_code);
                     if (country) {
-                        console.log('[Survey] Setting detected country:', country.name);
+                        console.log(`[Survey] Setting ${data.status} country:`, country.name);
                         survey.setValue("country", country.code);
                     }
                 } else if (data.status === 'error') {
